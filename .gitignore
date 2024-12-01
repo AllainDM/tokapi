@@ -3,3 +3,6 @@
 
 # Конфиг
 config.py
+
+database.db
+database1.db

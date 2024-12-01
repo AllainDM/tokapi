@@ -5,13 +5,22 @@ import re
 import sqlite3
 
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.common.by import By
+# from selenium import webdriver
+
+from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+
+# from selenium.webdriver.common.proxy import Proxy
+# from selenium.webdriver.common.proxy import ProxyType
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.chrome.service import Service
+# from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+# from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
 import config
@@ -65,7 +74,7 @@ class DatabaseHandler:
                             (new_is_read, value))
 
     def get_tunnus(self):
-        list_tunnus = self.cursor.execute('SELECT * FROM company WHERE is_read = 0 LIMIT 500')
+        list_tunnus = self.cursor.execute(f'SELECT * FROM company WHERE is_read = 0 LIMIT {config.req_num}')
         # Извлечение всех строк из курсора
         list_tunnus = list_tunnus.fetchall()
 
@@ -131,24 +140,62 @@ class Ytj:
 class Parser:
     def __init__(self):
         self.url = 'https://tietopalvelu.ytj.fi/yritys/'
+        # self.url = 'https://mail.ru/'
 
-    def get_contacts(self, tunnus):
-        # Старый вариант с отображением браузера
-        # service = Service(ChromeDriverManager().install())
-        # driver = webdriver.Chrome(service=service)
+    def get_contacts(self, tunnus, prox):
+        # print(chrome_options)
+        # prox = 'http://user232340:lcrjmo@185.212.112.68:8124'
+        # Добавления пользовательских заголовков
+        # chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")  # Если нужно, чтобы браузер не отображался
+        # chrome_options = Options()
+        # chrome_options.add_argument("--headless=new")  # Если нужно, чтобы браузер не отображался
+        # # chrome_options.add_argument(f"--proxy-server={prox}")
+        #
+        # chrome_options.proxy = Proxy({ 'proxyType': ProxyType.MANUAL, 'httpProxy' : 'http.proxy:1234'})
+        #
+        # # Старый вариант с отображением браузера
+        # # service = Service(ChromeDriverManager().install())
+        # # driver = webdriver.Chrome(service=service, options=chrome_options)
+        #
+
+        # set selenium-wire options to use the proxy
+        seleniumwire_options = {
+            "proxy": {
+                "http": prox,
+                "https": prox
+            },
+        }
+
+        # set Chrome options to run in headless mode
+        options = Options()
+        # options.add_argument("--headless")
+        options.add_argument("--headless=new")
+
+        # initialize the Chrome driver with service, selenium-wire options, and chrome options
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()),
+            seleniumwire_options=seleniumwire_options,
+            options=options
+        )
+
         # Новый вариант с не отображением браузера
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
         # Устанавливаем размер окна
         desired_width = 1920
         desired_height = 1080
         driver.set_window_size(desired_width, desired_height)
 
+        # try:
+
         # Открываем нужную страницу
         driver.get(f'{self.url}{tunnus}')
+        print(f'{self.url}{tunnus}')
+        # # driver.get(f'{self.url}')
+        # except:
+        #     print("хз че тут")
+        #     return
 
         # # Ждем, пока страница загрузится полностью.
         # time.sleep(config.sleep_before)
@@ -168,58 +215,15 @@ class Parser:
             for button in buttons:
                 try:
                     button.click()
-                    # Подождем немного, если после нажатия кнопки что-то должно произойти
-                    # time.sleep(0.5)
-                # except Exception as e:
-                #     print(f"Ошибка при нажатии на кнопку: {e}")
                 except: ...
         except: ...
-
-        # # Нажмем на все кнопки.
-        # try:
-        #     button = driver.find_element(By.CLASS_NAME, 'btn-secondary')
-        #     button.click()  # Нажимаем на кнопку
-        # except: ...
-
         # # Ждем, пока новые данные на странице загрузятся полностью.
-        # time.sleep(config.sleep_after)
+        time.sleep(config.sleep_after)
 
         # Получаем HTML-контент страницы
         html_content = driver.page_source
         # Используем BeautifulSoup для парсинга HTML-контента
         soup = BeautifulSoup(html_content, 'html.parser')
-        #
-        # # Поиск названия компании
-        # company_name = self.parser_div('Companyname', soup)
-        # try: company_name = company_name[0]
-        # except IndexError: company_name = ''
-        #
-        # # Тип деятельности
-        # main_line_of_business = self.parser_div('Mainlineofbusiness', soup)
-        # try: main_line_of_business = main_line_of_business[0]
-        # except IndexError: main_line_of_business = ''
-        #
-        # # Поиск адреса компании
-        # address = self.parser_div('Postaladdress', soup)
-        # address_street = ''
-        # address_city = ''
-        # address_ind = ''
-        # # В случае пустого адреса создадим пустую строку.
-        # if len(address) < 1:
-        #     address_street = ''
-        # # Иначе все запишем с первую переменную с адресом.
-        # elif len(address) < 2:
-        #     address_street = address[0]
-        # # если же значения два, то все на своих местах плюс разделим город и индекс.
-        # elif len(address) == 2:
-        #     address_street = address[0]
-        #     address_split = address[1].split(" ")
-        #     try:
-        #         address_city = address_split[0]
-        #         address_ind = address_split[1]
-        #     except IndexError: # Если пробела не оказалось, то все запишем во вторую переменную.
-        #         address_city = address[1]
-
 
         # Поиск телефона
         mobile_phone = self.parser_div('Mobilephone', soup)
@@ -235,11 +239,6 @@ class Parser:
         email = self.parser_div('Email', soup)
         try: email = email[0]
         except IndexError: email = ''
-
-        # # Сайт
-        # website = self.parser_div('Website', soup)
-        # try: website = website[0]
-        # except IndexError: website = ''
 
         # return [tunnus, company_name, main_line_of_business, address_street, address_city, address_ind, mobile_phone, phone, email, website]
         print([tunnus, mobile_phone, phone, email])
@@ -276,29 +275,30 @@ def main():
     # api = Ytj()
     # companies = api.get_companies(company_type)
 
-    for _ in range(100):
+    for _ in range(config.main_cicle):
         for prox in config.proxies_list:
-
-    # Использование класса через контекстный менеджер.
-    # Получаем список инн, где запись is_read == False.
-    with DatabaseHandler('database.db') as db_handler:
-        lst = db_handler.get_tunnus()
-
-    # Парсер данных с сайта, в том числе скрытых за кнопкой.
-    parser_contact = Parser()
-    for i in lst:
-        contacts = parser_contact.get_contacts(i[1])
-        print("Контактные данные получены.")
-        if not contacts:
-            print("Нет контактных данных.")
-        else:
+            # Использование класса через контекстный менеджер.
+            # Получаем список инн, где запись is_read == False.
             with DatabaseHandler('database.db') as db_handler:
-                data_tuple = tuple(contacts)
-                print(data_tuple)
-                db_handler.update_contacts(data_tuple[0], data_tuple[1], data_tuple[2], data_tuple[3])
-                # db_handler.insert_data_company(data_tuple)
-                # # Обновим данные в таблице с инн, чтобы больше не читать его.
-                # db_handler.update_is_read_by_tunnus(contacts[0], True)
+                lst = db_handler.get_tunnus()
+
+            # Парсер данных с сайта, в том числе скрытых за кнопкой.
+            parser_contact = Parser()
+            for i in lst:
+                try:
+                    contacts = parser_contact.get_contacts(i[1], prox)
+                    print("Контактные данные получены.")
+                    if not contacts:
+                        print("Нет контактных данных.")
+                    else:
+                        with DatabaseHandler('database.db') as db_handler:
+                            data_tuple = tuple(contacts)
+                            print(data_tuple)
+                            db_handler.update_contacts(data_tuple[0], data_tuple[1], data_tuple[2], data_tuple[3])
+                            # db_handler.insert_data_company(data_tuple)
+                            # # Обновим данные в таблице с инн, чтобы больше не читать его.
+                            # db_handler.update_is_read_by_tunnus(contacts[0], True)
+                except: continue
 
 
 if __name__ == "__main__":
