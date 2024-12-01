@@ -79,9 +79,9 @@ class DatabaseHandler:
         list_tunnus = list_tunnus.fetchall()
 
         # Вывод результата
-        print("list_tunnus:")
-        for row in list_tunnus:
-            print(row)
+        # print("list_tunnus:")
+        # for row in list_tunnus:
+        #     print(row)
         return list_tunnus
 
 
@@ -178,71 +178,74 @@ class Parser:
             seleniumwire_options=seleniumwire_options,
             options=options
         )
-
         # Новый вариант с не отображением браузера
         # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-        # Устанавливаем размер окна
-        desired_width = 1920
-        desired_height = 1080
-        driver.set_window_size(desired_width, desired_height)
-
-        # try:
-
-        # Открываем нужную страницу
-        driver.get(f'{self.url}{tunnus}')
-        print(f'{self.url}{tunnus}')
-        # # driver.get(f'{self.url}')
-        # except:
-        #     print("хз че тут")
-        #     return
-
-        # # Ждем, пока страница загрузится полностью.
-        # time.sleep(config.sleep_before)
-
-        # Ждем, пока все кнопки не загрузятся
         try:
-            WebDriverWait(driver, config.sleep_all).until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, 'btn-secondary'))
-            )
-        except: print("Кнопок нет")
+            # Устанавливаем размер окна
+            desired_width = 1920
+            desired_height = 1080
+            driver.set_window_size(desired_width, desired_height)
 
-        # Находим все кнопки с общим классом
-        buttons = driver.find_elements(By.CLASS_NAME, 'btn-secondary')
+            # try:
 
-        # Нажимаем на каждую кнопку
-        try:
-            for button in buttons:
-                try:
-                    button.click()
-                except: ...
-        except: ...
-        # # Ждем, пока новые данные на странице загрузятся полностью.
-        time.sleep(config.sleep_after)
+            # Открываем нужную страницу
+            driver.get(f'{self.url}{tunnus}')
+            print(f'{self.url}{tunnus}')
+            # # driver.get(f'{self.url}')
+            # except:
+            #     print("хз че тут")
+            #     return
 
-        # Получаем HTML-контент страницы
-        html_content = driver.page_source
-        # Используем BeautifulSoup для парсинга HTML-контента
-        soup = BeautifulSoup(html_content, 'html.parser')
+            # # Ждем, пока страница загрузится полностью.
+            # time.sleep(config.sleep_before)
 
-        # Поиск телефона
-        mobile_phone = self.parser_div('Mobilephone', soup)
-        try: mobile_phone = mobile_phone[0]
-        except IndexError: mobile_phone = ''
+            # Ждем, пока все кнопки не загрузятся
+            try:
+                WebDriverWait(driver, config.sleep_all).until(
+                    EC.presence_of_all_elements_located((By.CLASS_NAME, 'btn-secondary'))
+                )
+            except: print("Кнопок нет")
 
-        # Поиск телефона
-        phone = self.parser_div('Phone', soup)
-        try: phone = phone[0]
-        except IndexError: phone = ''
+            # Находим все кнопки с общим классом
+            buttons = driver.find_elements(By.CLASS_NAME, 'btn-secondary')
 
-        # Поиск почты
-        email = self.parser_div('Email', soup)
-        try: email = email[0]
-        except IndexError: email = ''
+            # Нажимаем на каждую кнопку
+            try:
+                for button in buttons:
+                    try:
+                        button.click()
+                    except: ...
+            except: ...
+            # # Ждем, пока новые данные на странице загрузятся полностью.
+            time.sleep(config.sleep_after)
 
-        # return [tunnus, company_name, main_line_of_business, address_street, address_city, address_ind, mobile_phone, phone, email, website]
-        print([tunnus, mobile_phone, phone, email])
-        return [tunnus, mobile_phone, phone, email]
+            # Получаем HTML-контент страницы
+            html_content = driver.page_source
+            # Используем BeautifulSoup для парсинга HTML-контента
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # Поиск телефона
+            mobile_phone = self.parser_div('Mobilephone', soup)
+            try: mobile_phone = mobile_phone[0]
+            except IndexError: mobile_phone = ''
+
+            # Поиск телефона
+            phone = self.parser_div('Phone', soup)
+            try: phone = phone[0]
+            except IndexError: phone = ''
+
+            # Поиск почты
+            email = self.parser_div('Email', soup)
+            try: email = email[0]
+            except IndexError: email = ''
+
+            # return [tunnus, company_name, main_line_of_business, address_street, address_city, address_ind, mobile_phone, phone, email, website]
+            print([tunnus, mobile_phone, phone, email])
+            return [tunnus, mobile_phone, phone, email]
+        finally:
+            # Закрываем браузер
+            driver.quit()
 
     def parser_div(self, reg, soup):
         # Используем регулярное выражение для поиска заголовка
